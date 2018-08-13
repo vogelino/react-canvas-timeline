@@ -62,7 +62,7 @@ const makeConnectionLine = ({
 	const connectionLine = new PIXI.Graphics();
 	connectionLine.lineStyle(1.4, 0xFF00BB, 1);
 	connectionLine.moveTo(aX, aY);
-	connectionLine.bezierCurveTo(aX, aY + (bY - aY / 2), bX, aY + (bY - aY / 2), bX, bY);
+	connectionLine.bezierCurveTo(aX, aY + ((bY - aY) / 2), bX, aY + ((bY - aY) / 2), bX, bY);
 	const aXIsInRange = aX > scrollLeft && aX < canvasWidth + scrollLeft;
 	if (aXIsInRange) {
 		connectionLine.visible = true;
