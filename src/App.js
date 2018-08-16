@@ -1,180 +1,185 @@
-/* global window */
 import React, { Component } from 'react';
-import * as PIXI from 'pixi.js';
+import * as paper from 'paper';
 import './App.css';
+
+const HOVER_OPACITY = 0.2;
 
 const getArrayOfRandomLength = max => [...(new Array(Math.round(Math.random() * max)))];
 
-const createCanvas = (width = 3856, height = 512) => {
-	PIXI.settings.RESOLUTION = window.devicePixelRatio;
-	PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
-
-	const app = new PIXI.Application();
-	app.renderer = new PIXI.WebGLRenderer({ width, height, antialias: true });
-	app.renderer.backgroundColor = 0xFFFFFF;
-	app.renderer.autoResize = true;
-	app.renderer.resize(width, height);
-
-	return app;
+const createCanvas = (canvasElement) => {
+	paper.setup(canvasElement);
+	return paper;
 };
 
 const makeRuby = ({
 	x, y, onClick, onHover,
 }) => {
-	const ruby = new PIXI.Graphics();
-	const width = 10;
-	const height = width;
-	ruby.lineStyle(1, 0xFFFFFF, 1);
-	ruby.beginFill(0xFF00BB, 1);
-	ruby.drawRoundedRect(0, 0, width, height, 2.3);
-	ruby.endFill();
+	const rubyRect = new paper.Path.Rectangle(x - 5, y, 10, 10, 2);
+	rubyRect.style = {
+		fillColor: '#FF00BB',
+		strokeColor: '#FFFFFF',
+		strokeWidth: 1,
+	};
+	rubyRect.rotate(45);
 
-	ruby.pivot.x = width / 2;
-	ruby.pivot.y = height / 2;
-	ruby.rotation = 0.8;
-	ruby.x = x;
-	ruby.y = y;
-
-	ruby.interactive = true;
-	ruby.buttonMode = true;
-
-	ruby.mouseover = function onRubyMouseOver(mouseInfos) {
-		this.parent.children.forEach((child) => {
-			child.alpha = 0.1; // eslint-disable-line
+	rubyRect.onMouseEnter = function onRubyMouseOver(mouseInfos) {
+		this.parent.children.forEach((otherElement) => {
+			/* eslint-disable no-param-reassign */
+			if (otherElement.style.fillColor) {
+				otherElement.style.fillColor.alpha = HOVER_OPACITY;
+			}
+			if (otherElement.style.strokeColor) {
+				otherElement.style.strokeColor.alpha = HOVER_OPACITY;
+			}
+			if (otherElement.segments && otherElement.segments[0].point.x === x) {
+				otherElement.style.strokeColor.alpha = 1;
+			}
+			/* eslint-enable no-param-reassign */
 		});
-		this.alpha = 1;
+		this.style.fillColor.alpha = 1;
 		onHover(this, mouseInfos);
 	};
-	ruby.mouseout = function onRubyMouseOut() {
-		this.parent.children.forEach((child) => {
-			child.alpha = 1; // eslint-disable-line
+	rubyRect.onMouseLeave = function onRubyMouseOut() {
+		this.parent.children.forEach((otherElement) => {
+			/* eslint-disable no-param-reassign */
+			if (otherElement.style.fillColor) {
+				otherElement.style.fillColor.alpha = 1;
+			}
+			if (otherElement.style.strokeColor) {
+				otherElement.style.strokeColor.alpha = 1;
+			}
+			/* eslint-enable no-param-reassign */
 		});
 	};
-	ruby.click = function onRubyClick(mouseInfo) { onClick(this, mouseInfo); };
+	rubyRect.onClick = function onRubyClick(mouseInfo) { onClick(this, mouseInfo); };
 
-	return ruby;
+	return rubyRect;
 };
 
-const makeConnectionLine = ({
-	aX, aY, bX, bY, scrollLeft, canvasWidth,
-}) => {
-	const connectionLine = new PIXI.Graphics();
-	connectionLine.lineStyle(1.4, 0xFF00BB, 1);
-	connectionLine.moveTo(aX, aY);
-	connectionLine.bezierCurveTo(aX, aY + ((bY - aY) / 2), bX, aY + ((bY - aY) / 2), bX, bY);
-	const aXIsInRange = aX > scrollLeft && aX < canvasWidth + scrollLeft;
-	if (aXIsInRange) {
-		connectionLine.visible = true;
-	} else {
-		connectionLine.visible = false;
-	}
+const isElementInRange = ({ x, scrollLeft, canvasWidth }) => (
+	(x > scrollLeft) && (x < (scrollLeft + canvasWidth))
+);
 
-	return connectionLine;
+const makeConnectionLine = ({
+	aX, aY, bX, bY,
+}) => {
+	const pointA = new paper.Point(aX, aY);
+	const handleA = new paper.Point(0, ((bY - aY) / 2));
+
+	const pointB = new paper.Point(bX, bY);
+	const handleB = new paper.Point(0, -((bY - aY) / 2));
+
+	const segmentA = new paper.Segment(pointA, null, handleA);
+	const segmentB = new paper.Segment(pointB, handleB, null);
+
+	const connectionLine = new paper.Path(segmentA, segmentB);
+
+	connectionLine.fullySelected = false;
+	connectionLine.style = {
+		strokeWidth: 1,
+		strokeColor: '#FF00BB',
+	};
+
+	return {
+		path: connectionLine,
+		pointA,
+		handleA,
+		pointB,
+		handleB,
+	};
 };
 
 const getDataPointsGraphics = (dataPoints, dataPointsXB, {
 	scrollLeft,
 	canvasHeight,
+	canvasWidth,
 	onHover = () => { },
 	onClick = () => { },
 } = {}) => {
-	const container = new PIXI.Container();
 	const dataGraphics = dataPoints.map(({ aX, bX }) => {
 		const connectionLine = makeConnectionLine({
 			aX,
 			aY: 57,
 			bX: scrollLeft + bX,
 			bY: canvasHeight - 50,
-			scrollLeft,
-			canvasWidth: window.innerWidth,
+		});
+		connectionLine.path.visible = isElementInRange({
+			x: aX, canvasWidth, scrollLeft,
 		});
 		const ruby = makeRuby({
 			x: aX, y: 50, onClick, onHover,
 		});
-		container.addChild(connectionLine);
-		container.addChild(ruby);
 		return {
 			aX, bX, ruby, connectionLine,
 		};
 	});
 
-	return {
-		container,
-		dataGraphics,
-	};
-};
-
-const updateDataGraphics = (dataGraphics, dataPointsXB, {
-	canvasHeight,
-	scrollLeft,
-}) => {
-	dataGraphics.forEach(({ aX, bX, connectionLine }) => {
-		Object.assign(connectionLine, makeConnectionLine({
-			aX,
-			aY: 57,
-			bX: scrollLeft + bX,
-			bY: canvasHeight - 50,
-			scrollLeft,
-			canvasWidth: window.innerWidth,
-		}));
-	});
+	return dataGraphics;
 };
 
 class Timeline extends Component {
 	constructor(props) {
 		super(props);
 		this.scrollLeft = 0;
-		this.canvasWidth = 3856;
-		this.canvasHeight = 512;
-		this.dataPointsX = getArrayOfRandomLength(this.canvasWidth / 3)
-			.map(() => ({
-				aX: Math.round(Math.random() * (this.canvasWidth * 4)),
-				bX: Math.round(Math.random() * (window.innerWidth)),
-			}))
-			.sort(({ aX }, { aX: a2X }) => a2X - aX);
 	}
 
 	componentDidMount() {
-		this.canvasApp = createCanvas(this.canvasWidth, this.canvasHeight);
-		const { container, dataGraphics } = getDataPointsGraphics(this.dataPointsX, this.dataPointsXB, {
-			scrollLeft: this.scrollLeft,
-			canvasWidth: this.wrapperNode.getBoundingClientRect().width,
-			canvasHeight: this.canvasHeight,
-			onHover: () => { },
-			onClick: () => { },
-		});
-		this.dataGraphics = dataGraphics;
-		this.canvasApp.stage.addChild(container);
-		this.wrapperNode.appendChild(this.canvasApp.view);
+		const wrapperWidth = this.wrapperNode.getBoundingClientRect().width;
+		const canvasWidth = this.canvasNode.getBoundingClientRect().width;
+
+		this.dataPointsX = getArrayOfRandomLength(Math.round(canvasWidth / 20))
+			.map(() => ({
+				aX: Math.round(Math.random() * canvasWidth),
+				bX: Math.round(Math.random() * wrapperWidth),
+			}))
+			.sort(({ aX }, { aX: a2X }) => a2X - aX);
+		this.canvasApp = createCanvas(this.canvasNode);
+		this.drawGraphics();
 	}
 
 	shouldComponentUpdate() {
 		return false;
 	}
 
-	onTimelineScroll() {
+	drawGraphics() {
 		const { scrollLeft } = this.wrapperNode;
-		this.scrollLeft = scrollLeft;
-		updateDataGraphics(this.dataGraphics, this.dataPointsXB, {
-			scrollLeft: this.scrollLeft,
-			canvasWidth: this.wrapperNode.getBoundingClientRect().width,
-			canvasHeight: this.canvasHeight,
+		const { width: canvasWidth, height: canvasHeight } = this.wrapperNode.getBoundingClientRect();
+		if (!this.dataGraphics) {
+			this.dataGraphics = getDataPointsGraphics(this.dataPointsX, this.dataPointsXB, {
+				scrollLeft,
+				canvasWidth,
+				canvasHeight,
+			});
+			this.canvasApp.view.draw();
+			return;
+		}
+		this.dataGraphics.forEach(({ connectionLine, aX, bX }) => {
+			/* eslint-disable no-param-reassign */
+			connectionLine.path.segments[1].point.x = scrollLeft + bX;
+			const inRange = isElementInRange({
+				x: aX, canvasWidth, scrollLeft,
+			});
+			connectionLine.path.visible = inRange;
+			/* eslint-enable no-param-reassign */
 		});
-		this.canvasApp.renderer.backgroundColor = 0xFFFFFF;
-		this.renderTexture = this.renderTexture
-			|| PIXI.RenderTexture.create(this.canvasWidth, this.canvasWidth);
-		this.canvasApp.renderer.render(this.canvasApp.stage, null, false, false, true);
+		this.canvasApp.view.update();
 	}
 
 	render() {
 		return (
 			<div
 				className="canvasRoot"
+				onScroll={() => this.drawGraphics()}
 				ref={(node) => {
 					this.wrapperNode = node;
 				}}
-				onScroll={() => this.onTimelineScroll()}
-			/>
+			>
+				<canvas
+					ref={(node) => {
+						this.canvasNode = node;
+					}}
+				/>
+			</div>
 		);
 	}
 }
