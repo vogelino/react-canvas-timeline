@@ -3,8 +3,7 @@ import React, { Component } from 'react';
 import * as PIXI from 'pixi.js';
 import './App.css';
 
-const getArrayOfRandomLength = max =>
-	[...(new Array(Math.round(Math.random() * max)))];
+const getArrayOfRandomLength = max => [...(new Array(Math.round(Math.random() * max)))];
 
 const createCanvas = (width = 3856, height = 512) => {
 	PIXI.settings.RESOLUTION = window.devicePixelRatio;
@@ -73,29 +72,30 @@ const makeConnectionLine = ({
 	return connectionLine;
 };
 
-const getDataPointsGraphics = (dataPoints, {
+const getDataPointsGraphics = (dataPoints, dataPointsXB, {
 	scrollLeft,
-	canvasWidth,
 	canvasHeight,
 	onHover = () => { },
 	onClick = () => { },
 } = {}) => {
 	const container = new PIXI.Container();
-	const dataGraphics = dataPoints.map((x) => {
+	const dataGraphics = dataPoints.map(({ aX, bX }) => {
 		const connectionLine = makeConnectionLine({
-			aX: x,
+			aX,
 			aY: 57,
-			bX: scrollLeft + (canvasWidth / 2),
+			bX: scrollLeft + bX,
 			bY: canvasHeight - 50,
 			scrollLeft,
 			canvasWidth: window.innerWidth,
 		});
 		const ruby = makeRuby({
-			x, y: 50, onClick, onHover,
+			x: aX, y: 50, onClick, onHover,
 		});
 		container.addChild(connectionLine);
 		container.addChild(ruby);
-		return { x, ruby, connectionLine };
+		return {
+			aX, bX, ruby, connectionLine,
+		};
 	});
 
 	return {
@@ -104,16 +104,15 @@ const getDataPointsGraphics = (dataPoints, {
 	};
 };
 
-const updateDataGraphics = function (dataGraphics, {
-	canvasWidth,
+const updateDataGraphics = (dataGraphics, dataPointsXB, {
 	canvasHeight,
 	scrollLeft,
-}) {
-	dataGraphics.forEach(({ x, connectionLine }) => {
+}) => {
+	dataGraphics.forEach(({ aX, bX, connectionLine }) => {
 		Object.assign(connectionLine, makeConnectionLine({
-			aX: x,
+			aX,
 			aY: 57,
-			bX: scrollLeft + (canvasWidth / 2),
+			bX: scrollLeft + bX,
 			bY: canvasHeight - 50,
 			scrollLeft,
 			canvasWidth: window.innerWidth,
@@ -128,13 +127,16 @@ class Timeline extends Component {
 		this.canvasWidth = 3856;
 		this.canvasHeight = 512;
 		this.dataPointsX = getArrayOfRandomLength(this.canvasWidth / 3)
-			.map(() => Math.round(Math.random() * (this.canvasWidth * 4)))
-			.sort();
+			.map(() => ({
+				aX: Math.round(Math.random() * (this.canvasWidth * 4)),
+				bX: Math.round(Math.random() * (window.innerWidth)),
+			}))
+			.sort(({ aX }, { aX: a2X }) => a2X - aX);
 	}
 
 	componentDidMount() {
 		this.canvasApp = createCanvas(this.canvasWidth, this.canvasHeight);
-		const { container, dataGraphics } = getDataPointsGraphics(this.dataPointsX, {
+		const { container, dataGraphics } = getDataPointsGraphics(this.dataPointsX, this.dataPointsXB, {
 			scrollLeft: this.scrollLeft,
 			canvasWidth: this.wrapperNode.getBoundingClientRect().width,
 			canvasHeight: this.canvasHeight,
@@ -153,11 +155,14 @@ class Timeline extends Component {
 	onTimelineScroll() {
 		const { scrollLeft } = this.wrapperNode;
 		this.scrollLeft = scrollLeft;
-		updateDataGraphics(this.dataGraphics, {
+		updateDataGraphics(this.dataGraphics, this.dataPointsXB, {
 			scrollLeft: this.scrollLeft,
 			canvasWidth: this.wrapperNode.getBoundingClientRect().width,
 			canvasHeight: this.canvasHeight,
 		});
+		this.canvasApp.renderer.backgroundColor = 0xFFFFFF;
+		this.renderTexture = this.renderTexture
+			|| PIXI.RenderTexture.create(this.canvasWidth, this.canvasWidth);
 		this.canvasApp.renderer.render(this.canvasApp.stage, null, false, false, true);
 	}
 
