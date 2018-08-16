@@ -1,28 +1,40 @@
 {
-	"name": "react-canvas-timeline",
-	"version": "0.1.0",
-	"private": true,
-	"dependencies": {
-		"pixi.js": "^4.8.1",
-		"react": "^16.4.2",
-		"react-dom": "^16.4.2",
-		"react-scripts": "1.1.4"
-	},
-	"scripts": {
-		"lint": "eslint src",
-		"lint-fix": "eslint src --fix",
-		"start": "react-scripts start",
-		"build": "react-scripts build",
-		"test": "react-scripts test --env=jsdom",
-		"eject": "react-scripts eject"
-	},
-	"devDependencies": {
-		"babel-eslint": "^7.2.3",
-		"eslint": "^4.19.1",
-		"eslint-config-airbnb": "^17.0.0",
-		"eslint-config-vogelint-react": "^1.0.4",
-		"eslint-plugin-import": "^2.14.0",
-		"eslint-plugin-jsx-a11y": "^6.1.1",
-		"eslint-plugin-react": "^7.10.0"
-	}
+  "name": "react-canvas-timeline",
+  "version": "1.0.0",
+  "description": "A canvas timeline rendered within a React app as proof of concept",
+  "main": "src/index.js",
+  "dependencies": {
+    "pixi.js": "^4.8.1",
+    "react": "^16.4.2",
+    "react-dom": "^16.4.2",
+    "react-scripts": "1.1.4"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "lint-fix": "eslint src --fix",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  },
+  "devDependencies": {
+    "babel-eslint": "^7.2.3",
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb": "^17.0.0",
+    "eslint-config-vogelint-react": "^1.0.4",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.1",
+    "eslint-plugin-react": "^7.10.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vogelino/react-canvas-timeline.git"
+  },
+  "keywords": [],
+  "author": "Lucas Vogel <contact@vogelino.com> (http://vogelino.com/)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vogelino/react-canvas-timeline/issues"
+  },
+  "homepage": "https://github.com/vogelino/react-canvas-timeline#readme"
 }
