@@ -2,11 +2,10 @@
 	position: relative;
 	width: 100vw;
 	height: 100vh;
-	overflow-x: scroll;
-	overflow-y: hidden;
+	overflow: hidden;
 }
 
 .canvasRoot canvas {
-	width: 400vw;
+	width: 100vw;
 	height: 100vh;
 }

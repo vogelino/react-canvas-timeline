@@ -27,11 +27,11 @@ const setElementAlpha = (element, alpha) => {
 const makeRuby = ({
 	x, y, onClick, onHover,
 }) => {
-	const rubyRect = new paper.Path.Rectangle(x - 5, y, 10, 10, 2);
+	const rubyRect = new paper.Path.Rectangle(x - 5, y, 10, 10, 2.5);
 	rubyRect.style = {
-		fillColor: '#FF00BB',
+		fillColor: x % 8 ? '#BDBDBD' : '#FF00BB',
 		strokeColor: '#FFFFFF',
-		strokeWidth: 1,
+		strokeWidth: 1.5,
 	};
 	rubyRect.rotate(45);
 
@@ -55,8 +55,8 @@ const makeRuby = ({
 	return rubyRect;
 };
 
-const isElementInRange = ({ x, scrollLeft, canvasWidth }) => (
-	(x > scrollLeft) && (x < (scrollLeft + canvasWidth))
+const isElementInRange = ({ x, scrollLeft, viewWidth }) => (
+	(x > scrollLeft) && (x < (scrollLeft + viewWidth))
 );
 
 const makeConnectionLine = ({
@@ -75,8 +75,8 @@ const makeConnectionLine = ({
 
 	connectionLine.fullySelected = false;
 	connectionLine.style = {
-		strokeWidth: 1,
-		strokeColor: '#FF00BB',
+		strokeWidth: 1.3,
+		strokeColor: aX % 8 ? '#BDBDBD' : '#FF00BB',
 	};
 
 	return {
@@ -90,20 +90,20 @@ const makeConnectionLine = ({
 
 const getDataPointsGraphics = (dataPoints, dataPointsXB, {
 	scrollLeft,
-	canvasHeight,
-	canvasWidth,
+	viewHeight,
+	viewWidth,
 	onHover = () => { },
 	onClick = () => { },
 } = {}) => {
 	const dataGraphics = dataPoints.map(({ aX, bX }) => {
 		const connectionLine = makeConnectionLine({
 			aX,
-			aY: 57,
+			aY: 60,
 			bX: scrollLeft + bX,
-			bY: canvasHeight - 50,
+			bY: viewHeight - 50,
 		});
 		connectionLine.path.visible = isElementInRange({
-			x: aX, canvasWidth, scrollLeft,
+			x: aX, viewWidth, scrollLeft,
 		});
 		const ruby = makeRuby({
 			x: aX, y: 50, onClick, onHover,
@@ -123,17 +123,36 @@ class Timeline extends Component {
 	}
 
 	componentDidMount() {
-		const wrapperWidth = this.wrapperNode.getBoundingClientRect().width;
-		const canvasWidth = this.canvasNode.getBoundingClientRect().width;
+		this.viewWidth = this.canvasNode.getBoundingClientRect().width;
+		this.viewHeight = this.canvasNode.getBoundingClientRect().height;
+		this.canvasWidth = this.viewWidth * 4;
 
-		this.dataPointsX = getArrayOfRandomLength(Math.round(canvasWidth / 20))
+		this.dataPointsX = getArrayOfRandomLength(Math.round(this.canvasWidth / 20))
 			.map(() => ({
-				aX: Math.round(Math.random() * canvasWidth),
-				bX: Math.round(Math.random() * wrapperWidth),
+				aX: Math.round(Math.random() * this.canvasWidth),
+				bX: Math.round(Math.random() * this.viewWidth),
 			}))
 			.sort(({ aX }, { aX: a2X }) => a2X - aX);
-		this.canvasApp = createCanvas(this.canvasNode);
-		this.drawGraphics();
+		const canvasApp = createCanvas(this.canvasNode);
+		const toolPan = new paper.Tool();
+		toolPan.activate();
+		const drawGraphics = this.drawGraphics.bind(this);
+
+		toolPan.onMouseDrag = (event) => {
+			const delta = event.downPoint.subtract(event.point);
+			const initialScrollLeft = this.canvasApp.view.bounds.x;
+			if (this.scrollLeft < 0) delta.x = 0;
+			if (this.scrollLeft + this.viewWidth > this.canvasWidth - this.viewWidth) delta.x = 0;
+			this.scrollLeft = initialScrollLeft + delta.x;
+
+			delta.y = 0;
+
+			canvasApp.view.scrollBy(delta);
+			drawGraphics();
+		};
+
+		this.canvasApp = canvasApp;
+		drawGraphics();
 	}
 
 	shouldComponentUpdate() {
@@ -141,22 +160,20 @@ class Timeline extends Component {
 	}
 
 	drawGraphics() {
-		const { scrollLeft } = this.wrapperNode;
-		const { width: canvasWidth, height: canvasHeight } = this.wrapperNode.getBoundingClientRect();
 		if (!this.dataGraphics) {
 			this.dataGraphics = getDataPointsGraphics(this.dataPointsX, this.dataPointsXB, {
-				scrollLeft,
-				canvasWidth,
-				canvasHeight,
+				scrollLeft: this.scrollLeft,
+				viewWidth: this.viewWidth,
+				viewHeight: this.viewHeight,
 			});
 			this.canvasApp.view.draw();
 			return;
 		}
 		this.dataGraphics.forEach(({ connectionLine, aX, bX }) => {
 			/* eslint-disable no-param-reassign */
-			connectionLine.path.segments[1].point.x = scrollLeft + bX;
+			connectionLine.path.segments[1].point.x = this.scrollLeft + bX;
 			const inRange = isElementInRange({
-				x: aX, canvasWidth, scrollLeft,
+				x: aX, viewWidth: this.viewWidth, scrollLeft: this.scrollLeft,
 			});
 			connectionLine.path.visible = inRange;
 			/* eslint-enable no-param-reassign */
@@ -169,9 +186,6 @@ class Timeline extends Component {
 			<div
 				className="canvasRoot"
 				onScroll={() => this.drawGraphics()}
-				ref={(node) => {
-					this.wrapperNode = node;
-				}}
 			>
 				<canvas
 					ref={(node) => {
