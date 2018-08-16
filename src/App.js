@@ -11,6 +11,19 @@ const createCanvas = (canvasElement) => {
 	return paper;
 };
 
+const isConnectionLine = element => Boolean(element.segments);
+const startPointIsSameAs = (element, x) => element.segments[0].point.x === x;
+const setElementAlpha = (element, alpha) => {
+	/* eslint-disable no-param-reassign */
+	if (element.style.fillColor) {
+		element.style.fillColor.alpha = alpha;
+	}
+	if (element.style.strokeColor) {
+		element.style.strokeColor.alpha = alpha;
+	}
+	/* eslint-enable no-param-reassign */
+};
+
 const makeRuby = ({
 	x, y, onClick, onHover,
 }) => {
@@ -24,31 +37,17 @@ const makeRuby = ({
 
 	rubyRect.onMouseEnter = function onRubyMouseOver(mouseInfos) {
 		this.parent.children.forEach((otherElement) => {
-			/* eslint-disable no-param-reassign */
-			if (otherElement.style.fillColor) {
-				otherElement.style.fillColor.alpha = HOVER_OPACITY;
+			setElementAlpha(otherElement, HOVER_OPACITY);
+			if (isConnectionLine(otherElement) && startPointIsSameAs(otherElement, x)) {
+				setElementAlpha(otherElement, 1);
 			}
-			if (otherElement.style.strokeColor) {
-				otherElement.style.strokeColor.alpha = HOVER_OPACITY;
-			}
-			if (otherElement.segments && otherElement.segments[0].point.x === x) {
-				otherElement.style.strokeColor.alpha = 1;
-			}
-			/* eslint-enable no-param-reassign */
 		});
-		this.style.fillColor.alpha = 1;
+		setElementAlpha(this, 1);
 		onHover(this, mouseInfos);
 	};
 	rubyRect.onMouseLeave = function onRubyMouseOut() {
 		this.parent.children.forEach((otherElement) => {
-			/* eslint-disable no-param-reassign */
-			if (otherElement.style.fillColor) {
-				otherElement.style.fillColor.alpha = 1;
-			}
-			if (otherElement.style.strokeColor) {
-				otherElement.style.strokeColor.alpha = 1;
-			}
-			/* eslint-enable no-param-reassign */
+			setElementAlpha(otherElement, 1);
 		});
 	};
 	rubyRect.onClick = function onRubyClick(mouseInfo) { onClick(this, mouseInfo); };
