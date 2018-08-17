@@ -16,7 +16,6 @@ export const createCanvas = (canvasElement) => {
 	return paper;
 };
 
-export const isConnectionLine = element => Boolean(element.segments);
 export const startPointIsSameAs = (element, x) => element.segments[0].point.x === x;
 export const setElementAlpha = (element, alpha) => {
 	/* eslint-disable no-param-reassign */
@@ -52,6 +51,7 @@ const makeRuby = ({
 	rubyRect.onMouseLeave = onMouseLeave;
 	rubyRect.onClick = onClick;
 
+	rubyRect.isRuby = true;
 	return rubyRect;
 };
 
@@ -60,7 +60,7 @@ const isElementInRange = ({ x, scrollLeft, viewWidth }) => (
 );
 
 const makeConnectionLine = ({
-	aX, aY, bX, bY, visible,
+	aX, aY, bX, bY, visible, onMouseEnter, onMouseLeave, onClick,
 }) => {
 	const pointA = new paper.Point(aX, aY);
 	const handleA = new paper.Point(0, ((bY - aY) / 2));
@@ -80,6 +80,11 @@ const makeConnectionLine = ({
 		strokeColor: aX % 8 ? DEFAULT_LETTER_COLOR : STORY_LETTER_COLOR,
 	};
 
+	connectionLine.onMouseEnter = onMouseEnter;
+	connectionLine.onMouseLeave = onMouseLeave;
+	connectionLine.onClick = onClick;
+
+	connectionLine.isConnectionLine = true;
 	return {
 		path: connectionLine, pointA, handleA, pointB, handleB,
 	};
@@ -99,6 +104,7 @@ export const getDataPointsGraphics = (dataPoints, dataPointsXB, {
 		bX: scrollLeft + bX,
 		bY: viewHeight - LINE_BOTTOM_OFFSET,
 		visible: isElementInRange({ x: aX, viewWidth, scrollLeft }),
+		...handlers,
 	}),
 	ruby: makeRuby({ x: aX, y: RUBY_TOP_OFFSET, ...handlers }),
 }));

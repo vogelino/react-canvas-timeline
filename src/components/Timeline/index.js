@@ -6,7 +6,6 @@ import { TIMELINE_ZOOM_FACTOR, HOVER_OPACITY } from './constants';
 import {
 	getArrayOfRandomLength,
 	createCanvas,
-	isConnectionLine,
 	startPointIsSameAs,
 	setElementAlpha,
 	getDataPointsGraphics,
@@ -51,11 +50,14 @@ class Timeline extends Component {
 		return function onRubyMouseEnter(mouseInfos) {
 			this.parent.children.forEach((otherElement) => {
 				setElementAlpha(otherElement, HOVER_OPACITY);
-				if (isConnectionLine(otherElement)
-					&& startPointIsSameAs(otherElement, this.bounds.centerX)) {
+				if ((otherElement.isConnectionLine
+					&& startPointIsSameAs(otherElement, this.bounds.centerX))
+					|| (this.isConnectionLine
+						&& startPointIsSameAs(this, otherElement.bounds.centerX))) {
 					setElementAlpha(otherElement, 1);
-				} else {
-					this.insertAbove(otherElement);
+				}
+				if (otherElement !== this && !otherElement.isRuby) {
+					otherElement.sendToBack();
 				}
 			});
 			setElementAlpha(this, 1);
