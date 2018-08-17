@@ -141,6 +141,8 @@ class Timeline extends Component {
 				if (isConnectionLine(otherElement)
 					&& startPointIsSameAs(otherElement, this.bounds.centerX)) {
 					setElementAlpha(otherElement, 1);
+				} else {
+					this.insertAbove(otherElement);
 				}
 			});
 			setElementAlpha(this, 1);
@@ -152,7 +154,9 @@ class Timeline extends Component {
 	getRubyMouseLeaveHandler(onMouseLeave = () => { }) {
 		const update = () => this.canvasApp.view.update();
 		return function onRubyMouseLeave() {
-			this.parent.children.forEach(otherElement => setElementAlpha(otherElement, 1));
+			this.parent.children.forEach((otherElement) => {
+				setElementAlpha(otherElement, 1);
+			});
 			update();
 			onMouseLeave(this);
 		};
