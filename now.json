@@ -1,0 +1,9 @@
+{
+	"name": "react-canvas-timeline",
+	"alias": [
+		"canvas-timeline.vogelino.com"
+	],
+	"env": {
+		"NODE_ENV": "production"
+	}
+}
