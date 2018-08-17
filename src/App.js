@@ -191,6 +191,28 @@ class Timeline extends Component {
 		};
 	}
 
+	onMouseWheel({ deltaX }) {
+		const initialScrollLeft = this.scrollLeft + deltaX;
+		if (initialScrollLeft < 0) {
+			this.canvasApp.view.center = new paper.Point(
+				this.viewWidth / 2,
+				this.viewHeight / 2,
+			);
+			this.scrollLeft = 0;
+		} else if (initialScrollLeft > this.canvasWidth - this.viewWidth) {
+			this.canvasApp.view.center = new paper.Point(
+				this.canvasWidth - (this.viewWidth / 2),
+				this.viewHeight / 2,
+			);
+			this.scrollLeft = this.canvasWidth - this.viewWidth;
+		} else {
+			this.scrollLeft = initialScrollLeft;
+			this.canvasApp.view.scrollBy(new paper.Point(deltaX, 0));
+		}
+
+		this.drawGraphics();
+	}
+
 	drawGraphics() {
 		if (!this.dataGraphics) {
 			this.dataGraphics = getDataPointsGraphics(this.dataPointsX, this.dataPointsXB, {
@@ -230,7 +252,7 @@ class Timeline extends Component {
 		return (
 			<div
 				className="canvasRoot"
-				onScroll={() => this.drawGraphics()}
+				onWheel={evt => this.onMouseWheel(evt)}
 			>
 				<canvas
 					ref={(node) => {
