@@ -3,15 +3,16 @@ import React, { Component } from 'react';
 import * as paper from 'paper';
 import throttle from 'lodash.throttle';
 import './Timeline.css';
-
-const TIMELINE_ZOOM_FACTOR = 25;
-const HOVER_OPACITY = 0.2;
-const RUBY_SIZE = 10;
-const RUBY_TOP_OFFSET = 60;
-const LINE_BOTTOM_OFFSET = 60;
-const DEFAULT_LETTER_COLOR = '#BDBDBD';
-const STORY_LETTER_COLOR = '#FF00BB';
-const TIMELINE_BACKGROUND_COLOR = '#FFFFFF';
+import {
+	TIMELINE_ZOOM_FACTOR,
+	HOVER_OPACITY,
+	RUBY_SIZE,
+	RUBY_TOP_OFFSET,
+	LINE_BOTTOM_OFFSET,
+	DEFAULT_LETTER_COLOR,
+	STORY_LETTER_COLOR,
+	TIMELINE_BACKGROUND_COLOR,
+} from './constants';
 
 const getArrayOfRandomLength = max => [...(new Array(Math.round(Math.random() * max)))];
 
