@@ -2,7 +2,7 @@
 import React, { Component } from 'react';
 import * as paper from 'paper';
 import throttle from 'lodash.throttle';
-import './App.css';
+import './Timeline.css';
 
 const TIMELINE_ZOOM_FACTOR = 25;
 const HOVER_OPACITY = 0.2;
