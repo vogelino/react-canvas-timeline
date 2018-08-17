@@ -133,6 +133,11 @@ class Timeline extends Component {
 		return false;
 	}
 
+	onMouseWheel({ deltaX }) {
+		const initialScrollLeft = this.scrollLeft + deltaX;
+		this.scrollView({ initialScrollLeft, deltaX });
+	}
+
 	getRubyMouseEnterHandler(onMouseEnter = () => { }) {
 		const update = () => this.canvasApp.view.update();
 		return function onRubyMouseEnter(mouseInfos) {
@@ -163,32 +168,33 @@ class Timeline extends Component {
 	}
 
 	getTimelineDragHandler() {
-		const drawGraphics = this.drawGraphics.bind(this);
-
 		return (event) => {
-			const delta = event.downPoint.subtract(event.point);
-			const initialScrollLeft = this.canvasApp.view.bounds.x;
+			const deltaX = event.downPoint.subtract(event.point).x;
+			const initialScrollLeft = this.scrollLeft + deltaX;
 
-			if (this.scrollLeft + delta.x < 0) {
-				this.canvasApp.view.center = new paper.Point(
-					this.viewWidth / 2,
-					this.viewHeight / 2,
-				);
-				this.scrollLeft = 0;
-			} else if (this.scrollLeft + delta.x > this.canvasWidth - this.viewWidth) {
-				this.canvasApp.view.center = new paper.Point(
-					this.canvasWidth - (this.viewWidth / 2),
-					this.viewHeight / 2,
-				);
-				this.scrollLeft = this.canvasWidth - this.viewWidth;
-			} else {
-				this.scrollLeft = initialScrollLeft + delta.x;
-				delta.y = 0;
-				this.canvasApp.view.scrollBy(delta);
-			}
-
-			drawGraphics();
+			this.scrollView({ initialScrollLeft, deltaX });
 		};
+	}
+
+	scrollView({ initialScrollLeft, deltaX }) {
+		if (initialScrollLeft < 0) {
+			this.canvasApp.view.center = new paper.Point(
+				this.viewWidth / 2,
+				this.viewHeight / 2,
+			);
+			this.scrollLeft = 0;
+		} else if (initialScrollLeft > this.canvasWidth - this.viewWidth) {
+			this.canvasApp.view.center = new paper.Point(
+				this.canvasWidth - (this.viewWidth / 2),
+				this.viewHeight / 2,
+			);
+			this.scrollLeft = this.canvasWidth - this.viewWidth;
+		} else {
+			this.scrollLeft = initialScrollLeft;
+			this.canvasApp.view.scrollBy(new paper.Point(deltaX, 0));
+		}
+
+		this.drawGraphics();
 	}
 
 	drawGraphics() {
@@ -230,7 +236,7 @@ class Timeline extends Component {
 		return (
 			<div
 				className="canvasRoot"
-				onScroll={() => this.drawGraphics()}
+				onWheel={evt => this.onMouseWheel(evt)}
 			>
 				<canvas
 					ref={(node) => {
