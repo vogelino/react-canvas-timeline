@@ -8,6 +8,7 @@ const getArrayOfRandomLength = max => [...(new Array(Math.round(Math.random() * 
 
 const createCanvas = (canvasElement) => {
 	paper.setup(canvasElement);
+	paper.view.autoUpdate = false;
 	return paper;
 };
 
@@ -141,13 +142,24 @@ class Timeline extends Component {
 		toolPan.onMouseDrag = (event) => {
 			const delta = event.downPoint.subtract(event.point);
 			const initialScrollLeft = this.canvasApp.view.bounds.x;
-			if (this.scrollLeft < 0) delta.x = 0;
-			if (this.scrollLeft + this.viewWidth > this.canvasWidth - this.viewWidth) delta.x = 0;
-			this.scrollLeft = initialScrollLeft + delta.x;
+			if (this.scrollLeft + delta.x < 0) {
+				this.canvasApp.view.center = new paper.Point(
+					this.viewWidth / 2,
+					this.viewHeight / 2,
+				);
+				this.scrollLeft = 0;
+			} else if (this.scrollLeft + delta.x > this.canvasWidth - this.viewWidth) {
+				this.canvasApp.view.center = new paper.Point(
+					this.canvasWidth - (this.viewWidth / 2),
+					this.viewHeight / 2,
+				);
+				this.scrollLeft = this.canvasWidth - this.viewWidth;
+			} else {
+				this.scrollLeft = initialScrollLeft + delta.x;
+				delta.y = 0;
+				this.canvasApp.view.scrollBy(delta);
+			}
 
-			delta.y = 0;
-
-			canvasApp.view.scrollBy(delta);
 			drawGraphics();
 		};
 
