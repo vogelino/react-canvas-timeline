@@ -1,5 +1,7 @@
+/* global window */
 import React, { Component } from 'react';
 import * as paper from 'paper';
+import throttle from 'lodash.throttle';
 import './App.css';
 
 const TIMELINE_ZOOM_FACTOR = 25;
@@ -105,6 +107,26 @@ const getDataPointsGraphics = (dataPoints, dataPointsXB, {
 	}),
 	ruby: makeRuby({ x: aX, y: RUBY_TOP_OFFSET, ...handlers }),
 }));
+
+const updateConnectionLine = (connectionLine, {
+	scrollLeft, viewHeight, viewWidth, aX, bX,
+}) => {
+	/* eslint-disable no-param-reassign */
+	const segmentA = connectionLine.path.segments[0];
+	const segmentB = connectionLine.path.segments[1];
+	const halfPointY = (segmentB.point.y - segmentA.point.y) / 2;
+
+	segmentB.point.x = scrollLeft + bX;
+	segmentB.point.y = viewHeight - LINE_BOTTOM_OFFSET;
+	segmentB.handleIn.y = -halfPointY;
+	segmentA.handleOut.y = halfPointY;
+
+	const inRange = isElementInRange({
+		x: aX, viewWidth, scrollLeft,
+	});
+	connectionLine.path.visible = inRange;
+	/* eslint-enable no-param-reassign */
+};
 
 class Timeline extends Component {
 	constructor(props) {
@@ -214,13 +236,13 @@ class Timeline extends Component {
 			return;
 		}
 		this.dataGraphics.forEach(({ connectionLine, aX, bX }) => {
-			/* eslint-disable no-param-reassign */
-			connectionLine.path.segments[1].point.x = this.scrollLeft + bX;
-			const inRange = isElementInRange({
-				x: aX, viewWidth: this.viewWidth, scrollLeft: this.scrollLeft,
+			updateConnectionLine(connectionLine, {
+				aX,
+				bX,
+				scrollLeft: this.scrollLeft,
+				viewHeight: this.viewHeight,
+				viewWidth: this.viewWidth,
 			});
-			connectionLine.path.visible = inRange;
-			/* eslint-enable no-param-reassign */
 		});
 		this.canvasApp.view.update();
 	}
@@ -230,6 +252,20 @@ class Timeline extends Component {
 		toolPan.activate();
 
 		toolPan.onMouseDrag = this.getTimelineDragHandler();
+		window.addEventListener('resize',
+			throttle(() => this.resizeCanvas(), 500, { leading: false, trailing: true }));
+	}
+
+	resizeCanvas() {
+		this.viewWidth = this.canvasApp.view.viewSize.width;
+		this.viewHeight = this.canvasApp.view.viewSize.height;
+		this.canvasWidth = this.viewWidth * (100 / TIMELINE_ZOOM_FACTOR);
+		this.scrollLeft = 0;
+		this.canvasApp.view.center = new paper.Point(
+			this.viewWidth / 2,
+			this.viewHeight / 2,
+		);
+		this.drawGraphics();
 	}
 
 	render() {
@@ -242,6 +278,7 @@ class Timeline extends Component {
 					ref={(node) => {
 						this.canvasNode = node;
 					}}
+					data-paper-resize="true"
 				/>
 			</div>
 		);
