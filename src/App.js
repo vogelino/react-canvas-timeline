@@ -197,8 +197,12 @@ class Timeline extends Component {
 				scrollLeft: this.scrollLeft,
 				viewWidth: this.viewWidth,
 				viewHeight: this.viewHeight,
-				onMouseEnter: this.getRubyMouseEnterHandler(),
-				onMouseLeave: this.getRubyMouseLeaveHandler(),
+				onMouseEnter: this.getRubyMouseEnterHandler(() => {
+					this.canvasNode.style.cursor = 'pointer';
+				}),
+				onMouseLeave: this.getRubyMouseLeaveHandler(() => {
+					this.canvasNode.style.cursor = 'default';
+				}),
 			});
 			this.canvasApp.view.draw();
 			return;
