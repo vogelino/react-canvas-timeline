@@ -1,4 +1,4 @@
-import paper from 'paper';
+import * as paper from 'paper';
 import {
 	RUBY_SIZE,
 	RUBY_TOP_OFFSET,
@@ -11,12 +11,11 @@ import {
 export const getArrayOfRandomLength = max => [...(new Array(Math.round(Math.random() * max)))];
 
 export const createCanvas = (canvasElement) => {
-	paper.setup(canvasElement);
-	paper.view.autoUpdate = false;
-	return paper;
+	const canvas = paper.setup(canvasElement);
+	canvas.view.autoUpdate = false;
+	return canvas;
 };
 
-export const startPointIsSameAs = (element, x) => element.segments[0].point.x === x;
 export const setElementAlpha = (element, alpha) => {
 	/* eslint-disable no-param-reassign */
 	if (element.style.fillColor) {
@@ -95,19 +94,24 @@ export const getDataPointsGraphics = (dataPoints, dataPointsXB, {
 	viewHeight,
 	viewWidth,
 	...handlers
-} = {}) => dataPoints.map(({ aX, bX }) => ({
-	aX,
-	bX,
-	connectionLine: makeConnectionLine({
+} = {}) => dataPoints.map(({ aX, bX }) => {
+	const connectionLine = makeConnectionLine({
 		aX,
 		aY: RUBY_TOP_OFFSET + RUBY_SIZE,
 		bX: scrollLeft + bX,
 		bY: viewHeight - LINE_BOTTOM_OFFSET,
 		visible: isElementInRange({ x: aX, viewWidth, scrollLeft }),
 		...handlers,
-	}),
-	ruby: makeRuby({ x: aX, y: RUBY_TOP_OFFSET, ...handlers }),
-}));
+	});
+	const ruby = makeRuby({ x: aX, y: RUBY_TOP_OFFSET, ...handlers });
+
+	ruby.connectionLine = connectionLine;
+	connectionLine.path.ruby = ruby;
+
+	return {
+		aX, bX, connectionLine, ruby,
+	};
+});
 
 export const updateConnectionLine = (connectionLine, {
 	scrollLeft, viewHeight, viewWidth, aX, bX,
@@ -119,12 +123,12 @@ export const updateConnectionLine = (connectionLine, {
 
 	segmentB.point.x = scrollLeft + bX;
 	segmentB.point.y = viewHeight - LINE_BOTTOM_OFFSET;
-	segmentB.handleIn.y = -halfPointY;
-	segmentA.handleOut.y = halfPointY;
 
-	const inRange = isElementInRange({
+	segmentA.handleOut.y = halfPointY;
+	segmentB.handleIn.y = -halfPointY;
+
+	connectionLine.path.visible = isElementInRange({
 		x: aX, viewWidth, scrollLeft,
 	});
-	connectionLine.path.visible = inRange;
 	/* eslint-enable no-param-reassign */
 };
