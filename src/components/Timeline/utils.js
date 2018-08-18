@@ -16,7 +16,6 @@ export const createCanvas = (canvasElement) => {
 	return canvas;
 };
 
-export const startPointIsSameAs = (element, x) => element.segments[0].point.x === x;
 export const setElementAlpha = (element, alpha) => {
 	/* eslint-disable no-param-reassign */
 	if (element.style.fillColor) {
@@ -95,19 +94,24 @@ export const getDataPointsGraphics = (dataPoints, dataPointsXB, {
 	viewHeight,
 	viewWidth,
 	...handlers
-} = {}) => dataPoints.map(({ aX, bX }) => ({
-	aX,
-	bX,
-	connectionLine: makeConnectionLine({
+} = {}) => dataPoints.map(({ aX, bX }) => {
+	const connectionLine = makeConnectionLine({
 		aX,
 		aY: RUBY_TOP_OFFSET + RUBY_SIZE,
 		bX: scrollLeft + bX,
 		bY: viewHeight - LINE_BOTTOM_OFFSET,
 		visible: isElementInRange({ x: aX, viewWidth, scrollLeft }),
 		...handlers,
-	}),
-	ruby: makeRuby({ x: aX, y: RUBY_TOP_OFFSET, ...handlers }),
-}));
+	});
+	const ruby = makeRuby({ x: aX, y: RUBY_TOP_OFFSET, ...handlers });
+
+	ruby.connectionLine = connectionLine;
+	connectionLine.path.ruby = ruby;
+
+	return {
+		aX, bX, connectionLine, ruby,
+	};
+});
 
 export const updateConnectionLine = (connectionLine, {
 	scrollLeft, viewHeight, viewWidth, aX, bX,
