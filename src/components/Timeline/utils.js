@@ -1,4 +1,4 @@
-import paper from 'paper';
+import * as paper from 'paper';
 import {
 	RUBY_SIZE,
 	RUBY_TOP_OFFSET,
@@ -11,9 +11,9 @@ import {
 export const getArrayOfRandomLength = max => [...(new Array(Math.round(Math.random() * max)))];
 
 export const createCanvas = (canvasElement) => {
-	paper.setup(canvasElement);
-	paper.view.autoUpdate = false;
-	return paper;
+	const canvas = paper.setup(canvasElement);
+	canvas.view.autoUpdate = false;
+	return canvas;
 };
 
 export const startPointIsSameAs = (element, x) => element.segments[0].point.x === x;
@@ -119,12 +119,12 @@ export const updateConnectionLine = (connectionLine, {
 
 	segmentB.point.x = scrollLeft + bX;
 	segmentB.point.y = viewHeight - LINE_BOTTOM_OFFSET;
-	segmentB.handleIn.y = -halfPointY;
-	segmentA.handleOut.y = halfPointY;
 
-	const inRange = isElementInRange({
+	segmentA.handleOut.y = halfPointY;
+	segmentB.handleIn.y = -halfPointY;
+
+	connectionLine.path.visible = isElementInRange({
 		x: aX, viewWidth, scrollLeft,
 	});
-	connectionLine.path.visible = inRange;
 	/* eslint-enable no-param-reassign */
 };

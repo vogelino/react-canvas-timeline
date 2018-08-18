@@ -45,7 +45,7 @@ class Timeline extends Component {
 		this.scrollView({ initialScrollLeft, deltaX });
 	}
 
-	getRubyMouseEnterHandler(onMouseEnter = () => { }) {
+	getMouseEnterHandler(onMouseEnter = () => { }) {
 		const update = () => this.canvasApp.view.update();
 		return function onRubyMouseEnter(mouseInfos) {
 			this.parent.children.forEach((otherElement) => {
@@ -66,7 +66,7 @@ class Timeline extends Component {
 		};
 	}
 
-	getRubyMouseLeaveHandler(onMouseLeave = () => { }) {
+	getMouseLeaveHandler(onMouseLeave = () => { }) {
 		const update = () => this.canvasApp.view.update();
 		return function onRubyMouseLeave() {
 			this.parent.children.forEach((otherElement) => {
@@ -113,10 +113,10 @@ class Timeline extends Component {
 				scrollLeft: this.scrollLeft,
 				viewWidth: this.viewWidth,
 				viewHeight: this.viewHeight,
-				onMouseEnter: this.getRubyMouseEnterHandler(() => {
+				onMouseEnter: this.getMouseEnterHandler(() => {
 					this.canvasNode.style.cursor = 'pointer';
 				}),
-				onMouseLeave: this.getRubyMouseLeaveHandler(() => {
+				onMouseLeave: this.getMouseLeaveHandler(() => {
 					this.canvasNode.style.cursor = 'default';
 				}),
 			});
