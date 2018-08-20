@@ -5,7 +5,14 @@ import {
 	LINE_BOTTOM_OFFSET,
 	DEFAULT_LETTER_COLOR,
 	STORY_LETTER_COLOR,
+	TIMELINE_ZOOM_FACTOR,
 	TIMELINE_BACKGROUND_COLOR,
+	TIMELINE_NAVIGATOR_HEIGHT,
+	TIMELINE_NAVIGATOR_RADIUS,
+	TIMELINE_NAVIGATOR_ZONE_COLOR,
+	TIMELINE_NAVIGATOR_HANDLE_WIDTH,
+	TIMELINE_NAVIGATOR_HANDLE_RADIUS,
+	TIMELINE_NAVIGATOR_HANDLE_COLOR,
 } from './constants';
 
 export const getArrayOfRandomLength = max => [...(new Array(Math.round(Math.random() * max)))];
@@ -130,5 +137,64 @@ export const updateConnectionLine = (connectionLine, {
 	connectionLine.path.visible = isElementInRange({
 		x: aX, viewWidth, scrollLeft,
 	});
+	/* eslint-enable no-param-reassign */
+};
+
+export const toViewProportions = a => (a / (100 / TIMELINE_ZOOM_FACTOR));
+export const toCanvasProportions = a => (a * (100 / TIMELINE_ZOOM_FACTOR));
+
+export const getNavigator = ({
+	scrollLeft,
+	viewWidth,
+	onMouseDrag,
+	onMouseEnter,
+	onMouseLeave,
+}) => {
+	const zone = new paper.Path.Rectangle(
+		scrollLeft + toViewProportions(scrollLeft),
+		0,
+		toViewProportions(viewWidth),
+		TIMELINE_NAVIGATOR_HEIGHT,
+		TIMELINE_NAVIGATOR_RADIUS,
+	);
+	zone.style = {
+		fillColor: TIMELINE_NAVIGATOR_ZONE_COLOR,
+	};
+	zone.onMouseDrag = onMouseDrag;
+	zone.onMouseEnter = onMouseEnter;
+	zone.onMouseLeave = onMouseLeave;
+	setElementAlpha(zone, 0.3);
+
+	const leftHandle = new paper.Path.Rectangle(
+		zone.bounds.x - (TIMELINE_NAVIGATOR_HANDLE_WIDTH / 2),
+		0,
+		TIMELINE_NAVIGATOR_HANDLE_WIDTH,
+		TIMELINE_NAVIGATOR_HEIGHT,
+		TIMELINE_NAVIGATOR_HANDLE_RADIUS,
+	);
+
+	const rightHandle = new paper.Path.Rectangle(
+		leftHandle.bounds.x + zone.bounds.getWidth(),
+		0,
+		TIMELINE_NAVIGATOR_HANDLE_WIDTH,
+		TIMELINE_NAVIGATOR_HEIGHT,
+		TIMELINE_NAVIGATOR_HANDLE_RADIUS,
+	);
+
+	const handleStyle = {
+		fillColor: TIMELINE_NAVIGATOR_HANDLE_COLOR,
+	};
+
+	leftHandle.style = handleStyle;
+	rightHandle.style = handleStyle;
+
+	return { zone, leftHandle, rightHandle };
+};
+
+export const updateNavigator = (navigator, { scrollLeft }) => {
+	/* eslint-disable no-param-reassign */
+	navigator.zone.bounds.x = scrollLeft + toViewProportions(scrollLeft);
+	navigator.leftHandle.bounds.x = navigator.zone.bounds.x - (TIMELINE_NAVIGATOR_HANDLE_WIDTH / 2);
+	navigator.rightHandle.bounds.x = navigator.leftHandle.bounds.x + navigator.zone.bounds.getWidth();
 	/* eslint-enable no-param-reassign */
 };

@@ -2,13 +2,15 @@
 import React, { Component } from 'react';
 import * as paper from 'paper';
 import throttle from 'lodash.throttle';
-import { TIMELINE_ZOOM_FACTOR, HOVER_OPACITY } from './constants';
+import { TIMELINE_ZOOM_FACTOR, HOVER_OPACITY, TIMELINE_NAVIGATOR_HEIGHT } from './constants';
 import {
 	getArrayOfRandomLength,
 	createCanvas,
 	setElementAlpha,
 	getDataPointsGraphics,
 	updateConnectionLine,
+	getNavigator,
+	updateNavigator,
 } from './utils';
 import './Timeline.css';
 
@@ -78,10 +80,22 @@ class Timeline extends Component {
 
 	getTimelineDragHandler() {
 		return (event) => {
+			const isNavigatorZone = event.downPoint.y <= TIMELINE_NAVIGATOR_HEIGHT;
+			if (isNavigatorZone) return;
+
 			const deltaX = event.downPoint.subtract(event.point).x;
 			const initialScrollLeft = this.scrollLeft + deltaX;
 
 			this.scrollView({ initialScrollLeft, deltaX });
+		};
+	}
+
+	getNavigatorDragHandler() {
+		return (event) => {
+			const deltaX = event.delta.x / 1.25;
+			const initialScrollLeft = this.scrollLeft + deltaX;
+			this.scrollView({ initialScrollLeft, deltaX });
+			event.preventDefault();
 		};
 	}
 
@@ -107,30 +121,45 @@ class Timeline extends Component {
 	}
 
 	drawGraphics() {
+		const { viewWidth, viewHeight, scrollLeft } = this;
+		const setCursorToPointer = () => {
+			this.canvasNode.style.cursor = 'pointer';
+		};
+		const setCursorToDefault = () => {
+			this.canvasNode.style.cursor = 'default';
+		};
+
 		if (!this.dataGraphics) {
 			this.dataGraphics = getDataPointsGraphics(this.dataPointsX, this.dataPointsXB, {
-				scrollLeft: this.scrollLeft,
-				viewWidth: this.viewWidth,
-				viewHeight: this.viewHeight,
-				onMouseEnter: this.getMouseEnterHandler(() => {
-					this.canvasNode.style.cursor = 'pointer';
-				}),
-				onMouseLeave: this.getMouseLeaveHandler(() => {
-					this.canvasNode.style.cursor = 'default';
-				}),
+				scrollLeft,
+				viewWidth,
+				viewHeight,
+				onMouseEnter: this.getMouseEnterHandler(setCursorToPointer),
+				onMouseLeave: this.getMouseLeaveHandler(setCursorToDefault),
 			});
 			this.canvasApp.view.draw();
-			return;
-		}
-		this.dataGraphics.forEach(({ connectionLine, aX, bX }) => {
-			updateConnectionLine(connectionLine, {
-				aX,
-				bX,
-				scrollLeft: this.scrollLeft,
-				viewHeight: this.viewHeight,
-				viewWidth: this.viewWidth,
+		} else {
+			this.dataGraphics.forEach(({ connectionLine, aX, bX }) => {
+				updateConnectionLine(connectionLine, {
+					aX,
+					bX,
+					scrollLeft: this.scrollLeft,
+					viewHeight: this.viewHeight,
+					viewWidth: this.viewWidth,
+				});
 			});
-		});
+		}
+		if (!this.navigator) {
+			this.navigator = getNavigator({
+				scrollLeft,
+				viewWidth,
+				onMouseDrag: this.getNavigatorDragHandler(),
+				onMouseEnter: setCursorToPointer,
+				onMouseLeave: setCursorToDefault,
+			});
+		} else {
+			updateNavigator(this.navigator, { scrollLeft, viewWidth });
+		}
 		this.canvasApp.view.update();
 	}
 
