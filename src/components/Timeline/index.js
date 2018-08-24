@@ -122,12 +122,13 @@ class Timeline extends Component {
 			onConnectionMouseEnter,
 			onConnectionMouseLeave,
 			defaultColor,
+			maxNameWidth,
 		} = this.props;
 		const {
 			viewWidth, viewHeight, scrollLeft, zoomFactor, canvasWidth,
 		} = this;
 		const viewProps = {
-			viewWidth, viewHeight, scrollLeft, zoomFactor, canvasWidth, defaultColor,
+			viewWidth, viewHeight, scrollLeft, zoomFactor, canvasWidth, defaultColor, maxNameWidth,
 		};
 
 		const handlers = {
@@ -205,6 +206,7 @@ Timeline.defaultProps = {
 	onConnectionMouseLeave: () => { },
 	defaultColor: '#CCCCCC',
 	connections: [],
+	maxNameWidth: 150,
 };
 
 Timeline.propTypes = {
@@ -219,6 +221,7 @@ Timeline.propTypes = {
 	onConnectionClick: PropTypes.func,
 	onConnectionMouseEnter: PropTypes.func,
 	onConnectionMouseLeave: PropTypes.func,
+	maxNameWidth: PropTypes.number,
 };
 
 export default Timeline;

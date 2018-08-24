@@ -6,10 +6,10 @@ import './App.css';
 export default () => (
 	<Timeline
 		connections={
-			getArrayOfRandomLength(288)
+			getArrayOfRandomLength(180)
 				.map(() => ({
 					id: 'wefwfw',
-					color: '#CCCCCC',
+					color: Math.random() > 0.9 ? '#fa5a8f' : '#CCCCCC',
 					startPointXPosition: Math.round(Math.random() * 100) || 1,
 					endPointsXPositions: getArrayOfRandomLength(4)
 						.map(() => Math.round(Math.random() * 100) || 1),
