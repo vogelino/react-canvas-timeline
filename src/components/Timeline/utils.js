@@ -5,17 +5,13 @@ import {
 	LINE_BOTTOM_OFFSET,
 	DEFAULT_LETTER_COLOR,
 	STORY_LETTER_COLOR,
-	TIMELINE_ZOOM_FACTOR,
 	TIMELINE_BACKGROUND_COLOR,
-	TIMELINE_NAVIGATOR_HEIGHT,
-	TIMELINE_NAVIGATOR_RADIUS,
-	TIMELINE_NAVIGATOR_ZONE_COLOR,
-	TIMELINE_NAVIGATOR_HANDLE_WIDTH,
-	TIMELINE_NAVIGATOR_HANDLE_RADIUS,
-	TIMELINE_NAVIGATOR_HANDLE_COLOR,
 } from './constants';
 
 export const getArrayOfRandomLength = max => [...(new Array(Math.round(Math.random() * max)))];
+
+export const toViewProportions = (a, zoomFactor) => (a / (100 / zoomFactor));
+export const toCanvasProportions = (a, zoomFactor) => (a * (100 / zoomFactor));
 
 export const createCanvas = (canvasElement) => {
 	const canvas = paper.setup(canvasElement);
@@ -96,105 +92,56 @@ const makeConnectionLine = ({
 	};
 };
 
-export const getDataPointsGraphics = (dataPoints, dataPointsXB, {
+export const getDataPointsGraphics = (dataPoints, {
 	scrollLeft,
 	viewHeight,
 	viewWidth,
+	zoomFactor,
 	...handlers
 } = {}) => dataPoints.map(({ aX, bX }) => {
+	const proportionedAX = toCanvasProportions(aX, zoomFactor);
 	const connectionLine = makeConnectionLine({
-		aX,
+		aX: proportionedAX,
 		aY: RUBY_TOP_OFFSET + RUBY_SIZE,
 		bX: scrollLeft + bX,
 		bY: viewHeight - LINE_BOTTOM_OFFSET,
-		visible: isElementInRange({ x: aX, viewWidth, scrollLeft }),
+		visible: isElementInRange({ x: proportionedAX, viewWidth, scrollLeft }),
 		...handlers,
 	});
-	const ruby = makeRuby({ x: aX, y: RUBY_TOP_OFFSET, ...handlers });
+	const ruby = makeRuby({ x: proportionedAX, y: RUBY_TOP_OFFSET, ...handlers });
 
 	ruby.connectionLine = connectionLine;
 	connectionLine.path.ruby = ruby;
-
 	return {
 		aX, bX, connectionLine, ruby,
 	};
 });
 
+export const updateRuby = (ruby, {
+	zoomFactor, aX,
+}) => {
+	/* eslint-disable no-param-reassign */
+	ruby.bounds.centerX = toCanvasProportions(aX, zoomFactor);
+	/* eslint-enable no-param-reassign */
+};
+
 export const updateConnectionLine = (connectionLine, {
-	scrollLeft, viewHeight, viewWidth, aX, bX,
+	scrollLeft, viewHeight, viewWidth, zoomFactor, aX, bX,
 }) => {
 	/* eslint-disable no-param-reassign */
 	const segmentA = connectionLine.path.segments[0];
 	const segmentB = connectionLine.path.segments[1];
 	const halfPointY = (segmentB.point.y - segmentA.point.y) / 2;
 
+	segmentA.point.x = toCanvasProportions(aX, zoomFactor);
+	segmentA.handleOut.y = halfPointY;
+
 	segmentB.point.x = scrollLeft + bX;
 	segmentB.point.y = viewHeight - LINE_BOTTOM_OFFSET;
-
-	segmentA.handleOut.y = halfPointY;
 	segmentB.handleIn.y = -halfPointY;
 
 	connectionLine.path.visible = isElementInRange({
-		x: aX, viewWidth, scrollLeft,
+		x: toCanvasProportions(aX, zoomFactor), viewWidth, scrollLeft,
 	});
-	/* eslint-enable no-param-reassign */
-};
-
-export const toViewProportions = a => (a / (100 / TIMELINE_ZOOM_FACTOR));
-export const toCanvasProportions = a => (a * (100 / TIMELINE_ZOOM_FACTOR));
-
-export const getNavigator = ({
-	scrollLeft,
-	viewWidth,
-	onMouseDrag,
-	onMouseEnter,
-	onMouseLeave,
-}) => {
-	const zone = new paper.Path.Rectangle(
-		scrollLeft + toViewProportions(scrollLeft),
-		0,
-		toViewProportions(viewWidth),
-		TIMELINE_NAVIGATOR_HEIGHT,
-		TIMELINE_NAVIGATOR_RADIUS,
-	);
-	zone.style = {
-		fillColor: TIMELINE_NAVIGATOR_ZONE_COLOR,
-	};
-	zone.onMouseDrag = onMouseDrag;
-	zone.onMouseEnter = onMouseEnter;
-	zone.onMouseLeave = onMouseLeave;
-	setElementAlpha(zone, 0.3);
-
-	const leftHandle = new paper.Path.Rectangle(
-		zone.bounds.x - (TIMELINE_NAVIGATOR_HANDLE_WIDTH / 2),
-		0,
-		TIMELINE_NAVIGATOR_HANDLE_WIDTH,
-		TIMELINE_NAVIGATOR_HEIGHT,
-		TIMELINE_NAVIGATOR_HANDLE_RADIUS,
-	);
-
-	const rightHandle = new paper.Path.Rectangle(
-		leftHandle.bounds.x + zone.bounds.getWidth(),
-		0,
-		TIMELINE_NAVIGATOR_HANDLE_WIDTH,
-		TIMELINE_NAVIGATOR_HEIGHT,
-		TIMELINE_NAVIGATOR_HANDLE_RADIUS,
-	);
-
-	const handleStyle = {
-		fillColor: TIMELINE_NAVIGATOR_HANDLE_COLOR,
-	};
-
-	leftHandle.style = handleStyle;
-	rightHandle.style = handleStyle;
-
-	return { zone, leftHandle, rightHandle };
-};
-
-export const updateNavigator = (navigator, { scrollLeft }) => {
-	/* eslint-disable no-param-reassign */
-	navigator.zone.bounds.x = scrollLeft + toViewProportions(scrollLeft);
-	navigator.leftHandle.bounds.x = navigator.zone.bounds.x - (TIMELINE_NAVIGATOR_HANDLE_WIDTH / 2);
-	navigator.rightHandle.bounds.x = navigator.leftHandle.bounds.x + navigator.zone.bounds.getWidth();
 	/* eslint-enable no-param-reassign */
 };

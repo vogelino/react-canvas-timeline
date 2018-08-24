@@ -2,15 +2,14 @@
 import React, { Component } from 'react';
 import * as paper from 'paper';
 import throttle from 'lodash.throttle';
-import { TIMELINE_ZOOM_FACTOR, HOVER_OPACITY, TIMELINE_NAVIGATOR_HEIGHT } from './constants';
+import { TIMELINE_ZOOM_FACTOR, HOVER_OPACITY } from './constants';
 import {
 	getArrayOfRandomLength,
 	createCanvas,
 	setElementAlpha,
 	getDataPointsGraphics,
 	updateConnectionLine,
-	getNavigator,
-	updateNavigator,
+	updateRuby,
 } from './utils';
 import './Timeline.css';
 
@@ -18,16 +17,17 @@ class Timeline extends Component {
 	constructor(props) {
 		super(props);
 		this.scrollLeft = 0;
+		this.zoomFactor = TIMELINE_ZOOM_FACTOR;
 	}
 
 	componentDidMount() {
 		this.viewWidth = this.canvasNode.getBoundingClientRect().width;
 		this.viewHeight = this.canvasNode.getBoundingClientRect().height;
-		this.canvasWidth = this.viewWidth * (100 / TIMELINE_ZOOM_FACTOR);
+		this.canvasWidth = this.viewWidth * (100 / this.zoomFactor);
 
 		this.dataPointsX = getArrayOfRandomLength(Math.round(this.canvasWidth / 20))
 			.map(() => ({
-				aX: Math.round(Math.random() * this.canvasWidth),
+				aX: Math.round(Math.random() * this.viewWidth),
 				bX: Math.round(Math.random() * this.viewWidth),
 			}))
 			.sort(({ aX }, { aX: a2X }) => a2X - aX);
@@ -80,22 +80,10 @@ class Timeline extends Component {
 
 	getTimelineDragHandler() {
 		return (event) => {
-			const isNavigatorZone = event.downPoint.y <= TIMELINE_NAVIGATOR_HEIGHT;
-			if (isNavigatorZone) return;
-
 			const deltaX = event.downPoint.subtract(event.point).x;
 			const initialScrollLeft = this.scrollLeft + deltaX;
 
 			this.scrollView({ initialScrollLeft, deltaX });
-		};
-	}
-
-	getNavigatorDragHandler() {
-		return (event) => {
-			const deltaX = event.delta.x / 1.25;
-			const initialScrollLeft = this.scrollLeft + deltaX;
-			this.scrollView({ initialScrollLeft, deltaX });
-			event.preventDefault();
 		};
 	}
 
@@ -121,7 +109,9 @@ class Timeline extends Component {
 	}
 
 	drawGraphics() {
-		const { viewWidth, viewHeight, scrollLeft } = this;
+		const {
+			viewWidth, viewHeight, scrollLeft, zoomFactor,
+		} = this;
 		const setCursorToPointer = () => {
 			this.canvasNode.style.cursor = 'pointer';
 		};
@@ -130,35 +120,28 @@ class Timeline extends Component {
 		};
 
 		if (!this.dataGraphics) {
-			this.dataGraphics = getDataPointsGraphics(this.dataPointsX, this.dataPointsXB, {
+			this.dataGraphics = getDataPointsGraphics(this.dataPointsX, {
 				scrollLeft,
 				viewWidth,
 				viewHeight,
+				zoomFactor,
 				onMouseEnter: this.getMouseEnterHandler(setCursorToPointer),
 				onMouseLeave: this.getMouseLeaveHandler(setCursorToDefault),
 			});
 			this.canvasApp.view.draw();
 		} else {
-			this.dataGraphics.forEach(({ connectionLine, aX, bX }) => {
-				updateConnectionLine(connectionLine, {
-					aX,
-					bX,
-					scrollLeft: this.scrollLeft,
-					viewHeight: this.viewHeight,
-					viewWidth: this.viewWidth,
-				});
+			this.dataGraphics.forEach(({
+				connectionLine,
+				ruby,
+				aX,
+				bX,
+			}) => {
+				const params = {
+					aX, bX, zoomFactor, scrollLeft, viewHeight, viewWidth,
+				};
+				updateConnectionLine(connectionLine, params);
+				updateRuby(ruby, params);
 			});
-		}
-		if (!this.navigator) {
-			this.navigator = getNavigator({
-				scrollLeft,
-				viewWidth,
-				onMouseDrag: this.getNavigatorDragHandler(),
-				onMouseEnter: setCursorToPointer,
-				onMouseLeave: setCursorToDefault,
-			});
-		} else {
-			updateNavigator(this.navigator, { scrollLeft, viewWidth });
 		}
 		this.canvasApp.view.update();
 	}
@@ -175,7 +158,7 @@ class Timeline extends Component {
 	resizeCanvas() {
 		this.viewWidth = this.canvasApp.view.viewSize.width;
 		this.viewHeight = this.canvasApp.view.viewSize.height;
-		this.canvasWidth = this.viewWidth * (100 / TIMELINE_ZOOM_FACTOR);
+		this.canvasWidth = this.viewWidth * (100 / this.zoomFactor);
 		this.scrollLeft = 0;
 		this.canvasApp.view.center = new paper.Point(
 			this.viewWidth / 2,
