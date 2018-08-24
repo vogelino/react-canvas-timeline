@@ -1,5 +1,6 @@
 /* global window */
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 import * as paper from 'paper';
 import throttle from 'lodash.throttle';
 import { TIMELINE_ZOOM_FACTOR, HOVER_OPACITY } from './constants';
@@ -105,18 +106,30 @@ class Timeline extends Component {
 			this.canvasApp.view.scrollBy(new paper.Point(deltaX, 0));
 		}
 
+		const { onChartMove } = this.props;
+		onChartMove({
+			visibleRange: {
+				a: (this.scrollLeft / this.canvasWidth) * 100,
+				b: ((this.scrollLeft + this.viewWidth) / this.canvasWidth) * 100,
+			},
+		});
+
 		this.drawGraphics();
 	}
 
 	drawGraphics() {
+		const { onConnectionClick, onConnectionMouseEnter, onConnectionMouseLeave } = this.props;
 		const {
 			viewWidth, viewHeight, scrollLeft, zoomFactor,
 		} = this;
-		const setCursorToPointer = () => {
+
+		const onConnectionHover = (connectionId) => {
 			this.canvasNode.style.cursor = 'pointer';
+			onConnectionMouseEnter(connectionId);
 		};
-		const setCursorToDefault = () => {
+		const onConnectionOut = (connectionId) => {
 			this.canvasNode.style.cursor = 'default';
+			onConnectionMouseLeave(connectionId);
 		};
 
 		if (!this.dataGraphics) {
@@ -125,8 +138,9 @@ class Timeline extends Component {
 				viewWidth,
 				viewHeight,
 				zoomFactor,
-				onMouseEnter: this.getMouseEnterHandler(setCursorToPointer),
-				onMouseLeave: this.getMouseLeaveHandler(setCursorToDefault),
+				onMouseEnter: this.getMouseEnterHandler(onConnectionHover),
+				onMouseLeave: this.getMouseLeaveHandler(onConnectionOut),
+				onClick: onConnectionClick,
 			});
 			this.canvasApp.view.draw();
 		} else {
@@ -183,5 +197,19 @@ class Timeline extends Component {
 		);
 	}
 }
+
+Timeline.defaultProps = {
+	onChartMove: () => { },
+	onConnectionClick: () => { },
+	onConnectionMouseEnter: () => { },
+	onConnectionMouseLeave: () => { },
+};
+
+Timeline.propTypes = {
+	onChartMove: PropTypes.func,
+	onConnectionClick: PropTypes.func,
+	onConnectionMouseEnter: PropTypes.func,
+	onConnectionMouseLeave: PropTypes.func,
+};
 
 export default Timeline;
