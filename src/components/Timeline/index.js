@@ -5,7 +5,6 @@ import * as paper from 'paper';
 import throttle from 'lodash.throttle';
 import { TIMELINE_ZOOM_FACTOR, HOVER_OPACITY } from './constants';
 import {
-	getArrayOfRandomLength,
 	createCanvas,
 	setElementAlpha,
 	getDataPointsGraphics,
@@ -26,12 +25,6 @@ class Timeline extends Component {
 		this.viewHeight = this.canvasNode.getBoundingClientRect().height;
 		this.canvasWidth = this.viewWidth * (100 / this.zoomFactor);
 
-		this.dataPointsX = getArrayOfRandomLength(Math.round(this.canvasWidth / 20))
-			.map(() => ({
-				aX: Math.round(Math.random() * this.viewWidth),
-				bX: Math.round(Math.random() * this.viewWidth),
-			}))
-			.sort(({ aX }, { aX: a2X }) => a2X - aX);
 		this.canvasApp = createCanvas(this.canvasNode);
 
 		this.initTimelineInteraction();
@@ -54,12 +47,17 @@ class Timeline extends Component {
 				setElementAlpha(otherElement, HOVER_OPACITY);
 			});
 			if (!this.isConnectionLine) {
-				setElementAlpha(this.connectionLine.path, 1);
-				this.connectionLine.path.bringToFront();
+				this.connectionLines.forEach((connectionLine) => {
+					setElementAlpha(connectionLine.path, 1);
+					connectionLine.path.bringToFront();
+				});
 				this.bringToFront();
 			} else if (this.isConnectionLine) {
 				setElementAlpha(this.ruby, 1);
-				this.bringToFront();
+				this.ruby.connectionLines.forEach((connectionLine) => {
+					setElementAlpha(connectionLine.path, 1);
+					connectionLine.path.bringToFront();
+				});
 				this.ruby.bringToFront();
 			}
 			setElementAlpha(this, 1);
@@ -118,45 +116,47 @@ class Timeline extends Component {
 	}
 
 	drawGraphics() {
-		const { onConnectionClick, onConnectionMouseEnter, onConnectionMouseLeave } = this.props;
 		const {
-			viewWidth, viewHeight, scrollLeft, zoomFactor,
+			connections,
+			onConnectionClick,
+			onConnectionMouseEnter,
+			onConnectionMouseLeave,
+			defaultColor,
+		} = this.props;
+		const {
+			viewWidth, viewHeight, scrollLeft, zoomFactor, canvasWidth,
 		} = this;
-
-		const onConnectionHover = (connectionId) => {
-			this.canvasNode.style.cursor = 'pointer';
-			onConnectionMouseEnter(connectionId);
+		const viewProps = {
+			viewWidth, viewHeight, scrollLeft, zoomFactor, canvasWidth, defaultColor,
 		};
-		const onConnectionOut = (connectionId) => {
-			this.canvasNode.style.cursor = 'default';
-			onConnectionMouseLeave(connectionId);
+
+		const handlers = {
+			onMouseEnter: this.getMouseEnterHandler((connectionId) => {
+				this.canvasNode.style.cursor = 'pointer';
+				onConnectionMouseEnter(connectionId);
+			}),
+			onMouseLeave: this.getMouseLeaveHandler((connectionId) => {
+				this.canvasNode.style.cursor = 'default';
+				onConnectionMouseLeave(connectionId);
+			}),
+			onClick: onConnectionClick,
 		};
 
 		if (!this.dataGraphics) {
-			this.dataGraphics = getDataPointsGraphics(this.dataPointsX, {
-				scrollLeft,
-				viewWidth,
-				viewHeight,
-				zoomFactor,
-				onMouseEnter: this.getMouseEnterHandler(onConnectionHover),
-				onMouseLeave: this.getMouseLeaveHandler(onConnectionOut),
-				onClick: onConnectionClick,
-			});
+			this.dataGraphics = getDataPointsGraphics(connections, { ...viewProps, ...handlers });
 			this.canvasApp.view.draw();
-		} else {
-			this.dataGraphics.forEach(({
-				connectionLine,
-				ruby,
-				aX,
-				bX,
-			}) => {
-				const params = {
-					aX, bX, zoomFactor, scrollLeft, viewHeight, viewWidth,
-				};
-				updateConnectionLine(connectionLine, params);
-				updateRuby(ruby, params);
-			});
+			return;
 		}
+
+		this.dataGraphics.forEach(({
+			connectionLines, ruby, ...rest
+		}) => {
+			const params = { ...viewProps, ...rest };
+			connectionLines.forEach(
+				(connectionLine, lineIndex) => updateConnectionLine(connectionLine, lineIndex, params),
+			);
+			updateRuby(ruby, params);
+		});
 		this.canvasApp.view.update();
 	}
 
@@ -203,9 +203,18 @@ Timeline.defaultProps = {
 	onConnectionClick: () => { },
 	onConnectionMouseEnter: () => { },
 	onConnectionMouseLeave: () => { },
+	defaultColor: '#CCCCCC',
+	connections: [],
 };
 
 Timeline.propTypes = {
+	connections: PropTypes.arrayOf(PropTypes.shape({
+		id: PropTypes.string.isRequired,
+		color: PropTypes.string.isRequired,
+		startPointXPosition: PropTypes.number.isRequired,
+		endPointsXPositions: PropTypes.arrayOf(PropTypes.number).isRequired,
+	})),
+	defaultColor: PropTypes.string,
 	onChartMove: PropTypes.func,
 	onConnectionClick: PropTypes.func,
 	onConnectionMouseEnter: PropTypes.func,

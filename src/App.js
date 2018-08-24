@@ -5,13 +5,14 @@ import './App.css';
 
 export default () => (
 	<Timeline
-		data={
+		connections={
 			getArrayOfRandomLength(288)
 				.map(() => ({
 					id: 'wefwfw',
 					color: '#CCCCCC',
-					startPointXPosition: Math.round(Math.random() * 1440),
-					endPointsXPositions: Math.round(Math.random() * 1440),
+					startPointXPosition: Math.round(Math.random() * 100) || 1,
+					endPointsXPositions: getArrayOfRandomLength(4)
+						.map(() => Math.round(Math.random() * 100) || 1),
 				}))
 		}
 		visibleRange={{
