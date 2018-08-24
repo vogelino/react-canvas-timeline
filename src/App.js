@@ -19,24 +19,24 @@ export default () => (
 			a: 0,
 			b: 25,
 		}}
-		onConnectionClick={() => {
+		onConnectionClick={(id) => {
 			/* eslint-disable no-console */
-			console.log('onConnectionClick triggered!');
+			console.log('onConnectionClick triggered!', id);
 			/* eslint-enable no-console */
 		}}
-		onConnectionMouseEnter={() => {
+		onConnectionMouseEnter={(id, mouseX, mouseY) => {
 			/* eslint-disable no-console */
-			console.log('onConnectionMouseEnter triggered!');
+			console.log('onConnectionMouseEnter triggered!', id, mouseX, mouseY);
 			/* eslint-enable no-console */
 		}}
-		onConnectionMouseLeave={() => {
+		onConnectionMouseLeave={(id) => {
 			/* eslint-disable no-console */
-			console.log('onConnectionMouseLeave triggered!');
+			console.log('onConnectionMouseLeave triggered!', id);
 			/* eslint-enable no-console */
 		}}
-		onChartMove={() => {
+		onChartMove={(visibleRange) => {
 			/* eslint-disable no-console */
-			console.log('onChartMove triggered!');
+			console.log('onChartMove triggered!', visibleRange);
 			/* eslint-enable no-console */
 		}}
 	/>

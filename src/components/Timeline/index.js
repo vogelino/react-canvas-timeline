@@ -42,7 +42,7 @@ class Timeline extends Component {
 
 	getMouseEnterHandler(onMouseEnter = () => { }) {
 		const update = () => this.canvasApp.view.update();
-		return function onRubyMouseEnter(mouseInfos) {
+		return function onRubyMouseEnter(id, mouseX, mouseY) {
 			this.parent.children.forEach((otherElement) => {
 				setElementAlpha(otherElement, HOVER_OPACITY);
 			});
@@ -62,18 +62,18 @@ class Timeline extends Component {
 			}
 			setElementAlpha(this, 1);
 			update();
-			onMouseEnter(this, mouseInfos);
+			onMouseEnter(id, mouseX, mouseY);
 		};
 	}
 
 	getMouseLeaveHandler(onMouseLeave = () => { }) {
 		const update = () => this.canvasApp.view.update();
-		return function onRubyMouseLeave() {
+		return function onRubyMouseLeave(id) {
 			this.parent.children.forEach((otherElement) => {
 				setElementAlpha(otherElement, 1);
 			});
 			update();
-			onMouseLeave(this);
+			onMouseLeave(id);
 		};
 	}
 
@@ -131,9 +131,9 @@ class Timeline extends Component {
 		};
 
 		const handlers = {
-			onMouseEnter: this.getMouseEnterHandler((connectionId) => {
+			onMouseEnter: this.getMouseEnterHandler((connectionId, mouseX, mouseY) => {
 				this.canvasNode.style.cursor = 'pointer';
-				onConnectionMouseEnter(connectionId);
+				onConnectionMouseEnter(connectionId, mouseX, mouseY);
 			}),
 			onMouseLeave: this.getMouseLeaveHandler((connectionId) => {
 				this.canvasNode.style.cursor = 'default';

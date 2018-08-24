@@ -38,6 +38,7 @@ const makeRuby = ({
 	x = 0,
 	y = 0,
 	color: fillColor = '#FF0000',
+	id,
 	onClick = () => { },
 	onMouseEnter = () => { },
 	onMouseLeave = () => { },
@@ -54,9 +55,11 @@ const makeRuby = ({
 	};
 	rubyRect.rotate(45);
 
-	rubyRect.onMouseEnter = onMouseEnter;
-	rubyRect.onMouseLeave = onMouseLeave;
-	rubyRect.onClick = onClick;
+	rubyRect.onMouseEnter = function onLineEnter({ point }) {
+		onMouseEnter.bind(this)(id, point.x, point.y);
+	};
+	rubyRect.onMouseLeave = function onLineOut() { onMouseLeave.bind(this)(id); };
+	rubyRect.onClick = function onLineClick() { onClick.bind(this)(id); };
 
 	rubyRect.isRuby = true;
 	return rubyRect;
@@ -67,7 +70,7 @@ const isElementInRange = ({ x, scrollLeft, viewWidth }) => (
 );
 
 const makeConnectionLine = ({
-	startX, startY, endX, endY, visible, onMouseEnter, onMouseLeave, onClick, color,
+	startX, startY, endX, endY, visible, onMouseEnter, onMouseLeave, onClick, color, id,
 }) => {
 	const pointA = new paper.Point(startX, startY);
 	const handleA = new paper.Point(0, ((endY - startY) / 2));
@@ -87,9 +90,11 @@ const makeConnectionLine = ({
 		strokeColor: color,
 	};
 
-	connectionLine.onMouseEnter = onMouseEnter;
-	connectionLine.onMouseLeave = onMouseLeave;
-	connectionLine.onClick = onClick;
+	connectionLine.onMouseEnter = function onLineEnter({ point }) {
+		onMouseEnter.bind(this)(id, point.x, point.y);
+	};
+	connectionLine.onMouseLeave = function onLineOut() { onMouseLeave.bind(this)(id); };
+	connectionLine.onClick = function onLineClick() { onClick.bind(this)(id); };
 
 	connectionLine.isConnectionLine = true;
 	return {
@@ -113,10 +118,11 @@ export const getDataPointsGraphics = (dataPoints, {
 		total: canvasWidth,
 	});
 	const ruby = makeRuby({
-		x: startX, y: RUBY_TOP_OFFSET, color: color || defaultColor, ...handlers,
+		id, x: startX, y: RUBY_TOP_OFFSET, color: color || defaultColor, ...handlers,
 	});
 	const connectionLines = endPointsXPositions.map((bX) => {
 		const connectionLine = makeConnectionLine({
+			id,
 			startX,
 			startY: RUBY_TOP_OFFSET + RUBY_SIZE,
 			endX: scrollLeft + percentToValue({ part: bX, total: viewWidth }),
