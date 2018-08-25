@@ -10,6 +10,7 @@ import {
 	getDataPointsGraphics,
 	updateConnectionLine,
 	updateRuby,
+	normaliseConnections,
 } from './utils';
 import './Timeline.css';
 
@@ -121,14 +122,17 @@ class Timeline extends Component {
 			onConnectionClick,
 			onConnectionMouseEnter,
 			onConnectionMouseLeave,
-			defaultColor,
-			maxNameWidth,
 		} = this.props;
 		const {
 			viewWidth, viewHeight, scrollLeft, zoomFactor, canvasWidth,
 		} = this;
 		const viewProps = {
-			viewWidth, viewHeight, scrollLeft, zoomFactor, canvasWidth, defaultColor, maxNameWidth,
+			...this.props,
+			viewWidth,
+			viewHeight,
+			scrollLeft,
+			zoomFactor,
+			canvasWidth,
 		};
 
 		const handlers = {
@@ -144,7 +148,10 @@ class Timeline extends Component {
 		};
 
 		if (!this.dataGraphics) {
-			this.dataGraphics = getDataPointsGraphics(connections, { ...viewProps, ...handlers });
+			this.dataGraphics = getDataPointsGraphics(
+				normaliseConnections(connections, viewProps),
+				{ ...viewProps, ...handlers },
+			);
 			this.canvasApp.view.draw();
 			return;
 		}
@@ -179,6 +186,8 @@ class Timeline extends Component {
 			this.viewWidth / 2,
 			this.viewHeight / 2,
 		);
+		this.canvasApp.project.clear();
+		this.dataGraphics = null;
 		this.drawGraphics();
 	}
 
@@ -207,21 +216,28 @@ Timeline.defaultProps = {
 	defaultColor: '#CCCCCC',
 	connections: [],
 	maxNameWidth: 150,
+	endPointWidth: 20,
+	endPointTotalAmount: 0,
 };
 
 Timeline.propTypes = {
 	connections: PropTypes.arrayOf(PropTypes.shape({
 		id: PropTypes.string.isRequired,
-		color: PropTypes.string.isRequired,
+		color: PropTypes.oneOfType([
+			PropTypes.string,
+			PropTypes.oneOf([null]),
+		]),
 		startPointXPosition: PropTypes.number.isRequired,
 		endPointsXPositions: PropTypes.arrayOf(PropTypes.number).isRequired,
 	})),
-	defaultColor: PropTypes.string,
+	defaultColor: PropTypes.string, /* eslint-disable-line react/no-unused-prop-types */
 	onChartMove: PropTypes.func,
 	onConnectionClick: PropTypes.func,
 	onConnectionMouseEnter: PropTypes.func,
 	onConnectionMouseLeave: PropTypes.func,
-	maxNameWidth: PropTypes.number,
+	maxNameWidth: PropTypes.number, /* eslint-disable-line react/no-unused-prop-types */
+	endPointWidth: PropTypes.number, /* eslint-disable-line react/no-unused-prop-types */
+	endPointTotalAmount: PropTypes.number, /* eslint-disable-line react/no-unused-prop-types */
 };
 
 export default Timeline;

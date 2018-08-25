@@ -115,6 +115,49 @@ const makeConnectionLine = ({
 	};
 };
 
+const ifTrueThenOr = (ifTrue, then, or) => (ifTrue ? then : or);
+
+const getEndPointPosition = (pointIndex, pointWidth) => Math.round(
+	(pointIndex * pointWidth) + (pointWidth / 2),
+);
+
+const normaliseEndPoint = ({
+	displayableAmount, endPointWidth, viewWidth,
+}) => (point) => {
+	const endPointIndex = ifTrueThenOr(
+		point >= displayableAmount,
+		displayableAmount - 1,
+		point,
+	);
+	return valueToPercent({
+		value: getEndPointPosition(endPointIndex, endPointWidth),
+		total: viewWidth,
+	});
+};
+
+const normaliseEndPoints = ({ points, ...args }) => points.map(normaliseEndPoint(args));
+
+const getDisplayablePointsAmount = ({ totalWidth, pointWidth }) => Math.floor(
+	totalWidth / pointWidth,
+);
+
+export const normaliseConnections = (connections, {
+	viewWidth, endPointWidth,
+}) => {
+	const displayableAmount = getDisplayablePointsAmount({
+		totalWidth: viewWidth, pointWidth: endPointWidth,
+	});
+	return connections.map(connection => ({
+		...connection,
+		endPointsXPositions: normaliseEndPoints({
+			points: connection.endPointsXPositions,
+			viewWidth,
+			displayableAmount,
+			endPointWidth,
+		}),
+	}));
+};
+
 export const getDataPointsGraphics = (dataPoints, {
 	scrollLeft,
 	viewHeight,
@@ -122,10 +165,14 @@ export const getDataPointsGraphics = (dataPoints, {
 	canvasWidth,
 	defaultColor,
 	maxNameWidth,
+	endPointWidth,
 	...handlers
 }) => dataPoints.map(({
 	id, color, startPointXPosition, endPointsXPositions,
 }) => {
+	const displayableAmount = getDisplayablePointsAmount({
+		totalWidth: viewWidth, pointWidth: endPointWidth,
+	});
 	const startX = percentToValue({
 		part: startPointXPosition,
 		total: canvasWidth,
@@ -133,7 +180,12 @@ export const getDataPointsGraphics = (dataPoints, {
 	const ruby = makeRuby({
 		id, x: startX, y: RUBY_TOP_OFFSET, color: color || defaultColor, ...handlers,
 	});
-	const connectionLines = endPointsXPositions.map((bX) => {
+	const connectionLines = normaliseEndPoints({
+		points: endPointsXPositions,
+		viewWidth,
+		displayableAmount,
+		endPointWidth,
+	}).map((bX) => {
 		const connectionLine = makeConnectionLine({
 			id,
 			startX,
