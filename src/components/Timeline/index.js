@@ -1,14 +1,15 @@
 /* global window */
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 import * as paper from 'paper';
 import throttle from 'lodash.throttle';
 import { TIMELINE_ZOOM_FACTOR, HOVER_OPACITY } from './constants';
 import {
-	getArrayOfRandomLength,
 	createCanvas,
 	setElementAlpha,
 	getDataPointsGraphics,
 	updateConnectionLine,
+	updateRuby,
 } from './utils';
 import './Timeline.css';
 
@@ -16,19 +17,14 @@ class Timeline extends Component {
 	constructor(props) {
 		super(props);
 		this.scrollLeft = 0;
+		this.zoomFactor = TIMELINE_ZOOM_FACTOR;
 	}
 
 	componentDidMount() {
 		this.viewWidth = this.canvasNode.getBoundingClientRect().width;
 		this.viewHeight = this.canvasNode.getBoundingClientRect().height;
-		this.canvasWidth = this.viewWidth * (100 / TIMELINE_ZOOM_FACTOR);
+		this.canvasWidth = this.viewWidth * (100 / this.zoomFactor);
 
-		this.dataPointsX = getArrayOfRandomLength(Math.round(this.canvasWidth / 20))
-			.map(() => ({
-				aX: Math.round(Math.random() * this.canvasWidth),
-				bX: Math.round(Math.random() * this.viewWidth),
-			}))
-			.sort(({ aX }, { aX: a2X }) => a2X - aX);
 		this.canvasApp = createCanvas(this.canvasNode);
 
 		this.initTimelineInteraction();
@@ -46,33 +42,38 @@ class Timeline extends Component {
 
 	getMouseEnterHandler(onMouseEnter = () => { }) {
 		const update = () => this.canvasApp.view.update();
-		return function onRubyMouseEnter(mouseInfos) {
+		return function onRubyMouseEnter(id, mouseX, mouseY) {
 			this.parent.children.forEach((otherElement) => {
 				setElementAlpha(otherElement, HOVER_OPACITY);
 			});
 			if (!this.isConnectionLine) {
-				setElementAlpha(this.connectionLine.path, 1);
-				this.connectionLine.path.bringToFront();
+				this.connectionLines.forEach((connectionLine) => {
+					setElementAlpha(connectionLine.path, 1);
+					connectionLine.path.bringToFront();
+				});
 				this.bringToFront();
 			} else if (this.isConnectionLine) {
 				setElementAlpha(this.ruby, 1);
-				this.bringToFront();
+				this.ruby.connectionLines.forEach((connectionLine) => {
+					setElementAlpha(connectionLine.path, 1);
+					connectionLine.path.bringToFront();
+				});
 				this.ruby.bringToFront();
 			}
 			setElementAlpha(this, 1);
 			update();
-			onMouseEnter(this, mouseInfos);
+			onMouseEnter(id, mouseX, mouseY);
 		};
 	}
 
 	getMouseLeaveHandler(onMouseLeave = () => { }) {
 		const update = () => this.canvasApp.view.update();
-		return function onRubyMouseLeave() {
+		return function onRubyMouseLeave(id) {
 			this.parent.children.forEach((otherElement) => {
 				setElementAlpha(otherElement, 1);
 			});
 			update();
-			onMouseLeave(this);
+			onMouseLeave(id);
 		};
 	}
 
@@ -103,33 +104,59 @@ class Timeline extends Component {
 			this.canvasApp.view.scrollBy(new paper.Point(deltaX, 0));
 		}
 
+		const { onChartMove } = this.props;
+		onChartMove({
+			visibleRange: {
+				a: (this.scrollLeft / this.canvasWidth) * 100,
+				b: ((this.scrollLeft + this.viewWidth) / this.canvasWidth) * 100,
+			},
+		});
+
 		this.drawGraphics();
 	}
 
 	drawGraphics() {
+		const {
+			connections,
+			onConnectionClick,
+			onConnectionMouseEnter,
+			onConnectionMouseLeave,
+			defaultColor,
+			maxNameWidth,
+		} = this.props;
+		const {
+			viewWidth, viewHeight, scrollLeft, zoomFactor, canvasWidth,
+		} = this;
+		const viewProps = {
+			viewWidth, viewHeight, scrollLeft, zoomFactor, canvasWidth, defaultColor, maxNameWidth,
+		};
+
+		const handlers = {
+			onMouseEnter: this.getMouseEnterHandler((connectionId, mouseX, mouseY) => {
+				this.canvasNode.style.cursor = 'pointer';
+				onConnectionMouseEnter(connectionId, mouseX, mouseY);
+			}),
+			onMouseLeave: this.getMouseLeaveHandler((connectionId) => {
+				this.canvasNode.style.cursor = 'default';
+				onConnectionMouseLeave(connectionId);
+			}),
+			onClick: onConnectionClick,
+		};
+
 		if (!this.dataGraphics) {
-			this.dataGraphics = getDataPointsGraphics(this.dataPointsX, this.dataPointsXB, {
-				scrollLeft: this.scrollLeft,
-				viewWidth: this.viewWidth,
-				viewHeight: this.viewHeight,
-				onMouseEnter: this.getMouseEnterHandler(() => {
-					this.canvasNode.style.cursor = 'pointer';
-				}),
-				onMouseLeave: this.getMouseLeaveHandler(() => {
-					this.canvasNode.style.cursor = 'default';
-				}),
-			});
+			this.dataGraphics = getDataPointsGraphics(connections, { ...viewProps, ...handlers });
 			this.canvasApp.view.draw();
 			return;
 		}
-		this.dataGraphics.forEach(({ connectionLine, aX, bX }) => {
-			updateConnectionLine(connectionLine, {
-				aX,
-				bX,
-				scrollLeft: this.scrollLeft,
-				viewHeight: this.viewHeight,
-				viewWidth: this.viewWidth,
-			});
+
+		this.dataGraphics.forEach(({
+			connectionLines, ruby, ...rest
+		}) => {
+			const params = { ...viewProps, ...rest };
+			connectionLines.forEach(
+				(connectionLine, lineIndex) => updateConnectionLine(connectionLine, lineIndex, params),
+			);
+			updateRuby(ruby, params);
 		});
 		this.canvasApp.view.update();
 	}
@@ -146,7 +173,7 @@ class Timeline extends Component {
 	resizeCanvas() {
 		this.viewWidth = this.canvasApp.view.viewSize.width;
 		this.viewHeight = this.canvasApp.view.viewSize.height;
-		this.canvasWidth = this.viewWidth * (100 / TIMELINE_ZOOM_FACTOR);
+		this.canvasWidth = this.viewWidth * (100 / this.zoomFactor);
 		this.scrollLeft = 0;
 		this.canvasApp.view.center = new paper.Point(
 			this.viewWidth / 2,
@@ -171,5 +198,30 @@ class Timeline extends Component {
 		);
 	}
 }
+
+Timeline.defaultProps = {
+	onChartMove: () => { },
+	onConnectionClick: () => { },
+	onConnectionMouseEnter: () => { },
+	onConnectionMouseLeave: () => { },
+	defaultColor: '#CCCCCC',
+	connections: [],
+	maxNameWidth: 150,
+};
+
+Timeline.propTypes = {
+	connections: PropTypes.arrayOf(PropTypes.shape({
+		id: PropTypes.string.isRequired,
+		color: PropTypes.string.isRequired,
+		startPointXPosition: PropTypes.number.isRequired,
+		endPointsXPositions: PropTypes.arrayOf(PropTypes.number).isRequired,
+	})),
+	defaultColor: PropTypes.string,
+	onChartMove: PropTypes.func,
+	onConnectionClick: PropTypes.func,
+	onConnectionMouseEnter: PropTypes.func,
+	onConnectionMouseLeave: PropTypes.func,
+	maxNameWidth: PropTypes.number,
+};
 
 export default Timeline;
